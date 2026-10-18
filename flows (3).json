@@ -1,0 +1,468 @@
+[
+    {
+        "id": "c8d9d9dd14dee73e",
+        "type": "tab",
+        "label": "Flow 2",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "2bc45ab6994c4917",
+        "type": "debug",
+        "z": "c8d9d9dd14dee73e",
+        "name": "debug 2",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "payload",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 980,
+        "y": 400,
+        "wires": []
+    },
+    {
+        "id": "400b11a920f62263",
+        "type": "function",
+        "z": "c8d9d9dd14dee73e",
+        "name": "delete_topic",
+        "func": "msg.payload = {\n    \"connection_status\": msg.payload.toString()\n};\ndelete msg.topic;\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 790,
+        "y": 620,
+        "wires": [
+            [
+                "f3fe8274ae2ebc89"
+            ]
+        ]
+    },
+    {
+        "id": "f26461086c0f485a",
+        "type": "change",
+        "z": "c8d9d9dd14dee73e",
+        "name": "",
+        "rules": [
+            {
+                "t": "delete",
+                "p": "topic",
+                "pt": "msg"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 1020,
+        "y": 520,
+        "wires": [
+            [
+                "f6ce3acbaf7092a8"
+            ]
+        ]
+    },
+    {
+        "id": "80bdbbdf86df8a9a",
+        "type": "json",
+        "z": "c8d9d9dd14dee73e",
+        "name": "",
+        "property": "payload",
+        "action": "obj",
+        "pretty": false,
+        "x": 810,
+        "y": 520,
+        "wires": [
+            [
+                "2bc45ab6994c4917",
+                "f26461086c0f485a"
+            ]
+        ]
+    },
+    {
+        "id": "fc649ab9b022c236",
+        "type": "mqtt in",
+        "z": "c8d9d9dd14dee73e",
+        "name": "",
+        "topic": "v1/devices/me/rpc/request/+",
+        "qos": "0",
+        "datatype": "auto-detect",
+        "broker": "a96f607db93e8488",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 720,
+        "y": 780,
+        "wires": [
+            [
+                "60b2f311ffd05885"
+            ]
+        ]
+    },
+    {
+        "id": "60b2f311ffd05885",
+        "type": "function",
+        "z": "c8d9d9dd14dee73e",
+        "name": "on/off",
+        "func": "// التأكد من وصول رسالة صحيحة\nif (!msg.topic || !msg.payload) {\n    return null;\n}\n\n// استخراج رقم الطلب والبيانات\nvar requestId = msg.topic.slice(\"v1/devices/me/rpc/request/\".length);\nvar method = msg.payload.method;\nvar params = msg.payload.params;\n\nvar currentMotorState = context.get('motorState') || false;\n\n// 1. عند فتح الداشبورد: الرد على استعلام الحالة (getState)\nif (method === \"getState\") {\n    // نرسل الرد إلى ThingsBoard عبر المخرج الثاني فقط\n    return [null, {\n        topic: \"v1/devices/me/rpc/response/\" + requestId,\n        payload: currentMotorState\n    }];\n}\n\n// 2. عند الضغط على زر التشغيل أو الإيقاف (setState)\nif (method === \"setState\") {\n    context.set('motorState', params);\n\n    // [المخرج 1 - الأعلى]: يذهب حصراً إلى HiveMQ للراسبيري\n    var motorCmdMsg = {\n        topic: \"gradproject/motor/cmd\",\n        payload: {\n            state: params ? 1 : 0,\n            command: params ? \"ON\" : \"OFF\"\n        }\n    };\n\n    // [المخرج 2 - الأسفل]: يذهب حصراً إلى ThingsBoard كتأكيد\n    var tbResponseMsg = {\n        topic: \"v1/devices/me/rpc/response/\" + requestId,\n        payload: params\n    };\n\n    return [motorCmdMsg, tbResponseMsg];\n}\n\nreturn null;",
+        "outputs": 2,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1130,
+        "y": 780,
+        "wires": [
+            [
+                "7e16719104f0e87e"
+            ],
+            [
+                "ad3e6cecd5dcb946"
+            ]
+        ]
+    },
+    {
+        "id": "ad3e6cecd5dcb946",
+        "type": "mqtt out",
+        "z": "c8d9d9dd14dee73e",
+        "name": "thinges_on/off",
+        "topic": "",
+        "qos": "0",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "a96f607db93e8488",
+        "x": 1380,
+        "y": 800,
+        "wires": []
+    },
+    {
+        "id": "9e6e6b48d3ed6a3c",
+        "type": "mqtt in",
+        "z": "c8d9d9dd14dee73e",
+        "name": "HIVEMQ_IN",
+        "topic": "gradproject/motor/#",
+        "qos": "0",
+        "datatype": "auto-detect",
+        "broker": "07d3d629abb1e5d8",
+        "nl": false,
+        "rap": true,
+        "rh": 0,
+        "inputs": 0,
+        "x": 370,
+        "y": 520,
+        "wires": [
+            [
+                "ea587e99b27e6a75"
+            ]
+        ]
+    },
+    {
+        "id": "7e16719104f0e87e",
+        "type": "mqtt out",
+        "z": "c8d9d9dd14dee73e",
+        "name": "hivemq_OUT",
+        "topic": "",
+        "qos": "",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "07d3d629abb1e5d8",
+        "x": 1370,
+        "y": 740,
+        "wires": []
+    },
+    {
+        "id": "ea587e99b27e6a75",
+        "type": "switch",
+        "z": "c8d9d9dd14dee73e",
+        "name": "",
+        "property": "msg.topic",
+        "propertyType": "msg",
+        "rules": [
+            {
+                "t": "eq",
+                "v": "gradproject/motor/telemetry",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "pdm_demo_x7k2/M01/event",
+                "vt": "str"
+            },
+            {
+                "t": "eq",
+                "v": "gradproject/motor/status",
+                "vt": "str"
+            }
+        ],
+        "checkall": "true",
+        "repair": false,
+        "outputs": 3,
+        "x": 590,
+        "y": 520,
+        "wires": [
+            [
+                "80bdbbdf86df8a9a"
+            ],
+            [
+                "80bdbbdf86df8a9a"
+            ],
+            [
+                "400b11a920f62263"
+            ]
+        ]
+    },
+    {
+        "id": "9a1034fa451d0348",
+        "type": "mqtt out",
+        "z": "c8d9d9dd14dee73e",
+        "name": "",
+        "topic": "v1/devices/me/telemetry",
+        "qos": "",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "a96f607db93e8488",
+        "x": 1430,
+        "y": 520,
+        "wires": []
+    },
+    {
+        "id": "f3fe8274ae2ebc89",
+        "type": "mqtt out",
+        "z": "c8d9d9dd14dee73e",
+        "name": "",
+        "topic": "v1/devices/me/attributes",
+        "qos": "",
+        "retain": "",
+        "respTopic": "",
+        "contentType": "",
+        "userProps": "",
+        "correl": "",
+        "expiry": "",
+        "broker": "a96f607db93e8488",
+        "x": 1470,
+        "y": 620,
+        "wires": []
+    },
+    {
+        "id": "f6ce3acbaf7092a8",
+        "type": "function",
+        "z": "c8d9d9dd14dee73e",
+        "name": "function 2",
+        "func": "delete msg.topic;\nvar d = msg.payload || {};\n\nvar tempVal = (d.temperature_c !== null && d.temperature_c !== undefined) ? d.temperature_c : 0;\nvar humVal  = (d.humidity_pct !== null && d.humidity_pct !== undefined) ? d.humidity_pct : 0;\nvar vibVal  = d.vibration_rms || 0;\nvar currVal = d.current_a || 0;\nvar stateStr = d.motor_on ? \"RUNNING\" : \"STOPPED\";\nvar healthStr = d.ei_prediction || \"HEALTHY\";\n\nmsg.payload = {\n    motor_on: d.motor_on,\n    voltage_v: d.voltage_v || 0,\n    current_a: currVal,\n    power_w: d.power_w || 0,\n    temperature_c: tempVal,\n    humidity_pct: humVal,\n    vibration_rms: vibVal,\n    dominant_freq_hz: d.dominant_freq_hz || 0,\n    spectral_energy: d.spectral_energy || 0,\n    ei_prediction: healthStr,\n    fault_probability: d.fault_probability || 0,\n    fault_reason: d.fault_reason || \"NONE\",\n\n    temperature: tempVal,\n    Temperature: tempVal,\n    temp: tempVal,\n    TEMP: tempVal,\n\n    humidity: humVal,\n    Humidity: humVal,\n    humidit: humVal,\n\n    vibration: vibVal,\n    Vibration: vibVal,\n\n    current: currVal,\n    Current: currVal,\n    CURRENT: currVal,\n\n    state: stateStr,\n    State: stateStr,\n    STATE: stateStr,\n    status: stateStr,\n    operational_state: stateStr,\n\n    health: healthStr,\n    Health: healthStr,\n    HEALTH: healthStr\n};\n\n// Fault check\nvar faultReason = msg.payload.fault_reason;\nvar faultProbability = Number(msg.payload.fault_probability || 0);\n\nvar isFault =\n    (healthStr !== \"HEALTHY\" && healthStr !== \"NORMAL\") ||\n    (faultReason !== \"NONE\" && faultReason !== \"\") ||\n    faultProbability >= 0.7;\n\nvar telegramMsg = null;\nvar gmailMsg = null;\n\nif (isFault) {\n    // 1. Telegram Alert\n    telegramMsg = {\n        payload: {\n            chatId: \"1212440511\", // حط الـ Chat ID بتاعك هنا\n            type: \"message\",\n            content: \n                \"⚠️ MACHINE FAULT ALERT\\n\\n\" +\n                \"🏭 Machine: M01\\n\" +\n                \"⚙️ State: \" + stateStr + \"\\n\" +\n                \"🩺 Health: \" + healthStr + \"\\n\" +\n                \"🔎 Fault: \" + faultReason + \"\\n\" +\n                \"📊 Fault Probability: \" + faultProbability + \"\\n\" +\n                \"🌡️ Temperature: \" + tempVal + \" °C\\n\" +\n                \"💧 Humidity: \" + humVal + \" %\\n\" +\n                \"📳 Vibration: \" + vibVal + \"\\n\" +\n                \"⚡ Current: \" + currVal + \" A\"\n        }\n    };\n\n    // 2. Gmail Alert\n    gmailMsg = {\n        to: \"sherymegally@gmail.com\",\n        topic: \"CRITICAL MACHINE FAULT ALERT - M01\",\n        payload: \n            \"CRITICAL MACHINE FAULT DETECTED\\n\\n\" +\n            \"Machine: M01\\n\" +\n            \"State: \" + stateStr + \"\\n\" +\n            \"Health: \" + healthStr + \"\\n\" +\n            \"Fault Reason: \" + faultReason + \"\\n\" +\n            \"Fault Probability: \" + faultProbability + \"\\n\\n\" +\n            \"Sensor Readings:\\n\" +\n            \"- Temperature: \" + tempVal + \" °C\\n\" +\n            \"- Humidity: \" + humVal + \" %\\n\" +\n            \"- Vibration: \" + vibVal + \"\\n\" +\n            \"- Current: \" + currVal + \" A\"\n    };\n    \n    return [msg, telegramMsg, gmailMsg];\n} else {\n    return [msg, null, null];\n}",
+        "outputs": 3,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1200,
+        "y": 520,
+        "wires": [
+            [
+                "9a1034fa451d0348",
+                "f3fe8274ae2ebc89"
+            ],
+            [
+                "44656555f2fd8e49",
+                "c1d3a9071695a981"
+            ],
+            [
+                "a7b7d4c43f101dc0"
+            ]
+        ]
+    },
+    {
+        "id": "44656555f2fd8e49",
+        "type": "telegram sender",
+        "z": "c8d9d9dd14dee73e",
+        "name": "",
+        "bot": "5decbbaee148cfa0",
+        "haserroroutput": false,
+        "outputs": 1,
+        "x": 1390,
+        "y": 420,
+        "wires": [
+            []
+        ]
+    },
+    {
+        "id": "aa1f5b438b20f43f",
+        "type": "inject",
+        "z": "c8d9d9dd14dee73e",
+        "name": "",
+        "props": [
+            {
+                "p": "payload"
+            }
+        ],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "payload": "{   \"motor_on\": true,   \"voltage_v\": 220,   \"current_a\": 5.5,   \"power_w\": 1200,   \"temperature_c\": 85.5,   \"humidity_pct\": 60,   \"vibration_rms\": 4.2,   \"dominant_freq_hz\": 50,   \"spectral_energy\": 150,   \"ei_prediction\": \"FAULT\",   \"fault_probability\": 0.85,   \"fault_reason\": \"BEARING_WEAR\" }",
+        "payloadType": "json",
+        "x": 1090,
+        "y": 360,
+        "wires": [
+            [
+                "f6ce3acbaf7092a8"
+            ]
+        ]
+    },
+    {
+        "id": "c1d3a9071695a981",
+        "type": "debug",
+        "z": "c8d9d9dd14dee73e",
+        "name": "debug 9",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "true",
+        "targetType": "full",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1380,
+        "y": 320,
+        "wires": []
+    },
+    {
+        "id": "a7b7d4c43f101dc0",
+        "type": "e-mail",
+        "z": "c8d9d9dd14dee73e",
+        "server": "smtp.gmail.com",
+        "port": "465",
+        "authtype": "BASIC",
+        "saslformat": true,
+        "token": "oauth2Response.access_token",
+        "secure": true,
+        "tls": true,
+        "name": "sherymegally@gmail.com",
+        "dname": "mail",
+        "x": 1446.3138427734375,
+        "y": 567.76904296875,
+        "wires": []
+    },
+    {
+        "id": "a96f607db93e8488",
+        "type": "mqtt-broker",
+        "name": "",
+        "broker": "eu.thingsboard.cloud",
+        "port": 1883,
+        "tls": "",
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": false,
+        "protocolVersion": 4,
+        "keepalive": 60,
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthRetain": "false",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closeRetain": "false",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willRetain": "false",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "07d3d629abb1e5d8",
+        "type": "mqtt-broker",
+        "name": "",
+        "broker": "83465edc64434586bfc5f610174682e6.s1.eu.hivemq.cloud",
+        "port": "8883",
+        "tls": "",
+        "clientid": "",
+        "autoConnect": true,
+        "usetls": true,
+        "protocolVersion": 4,
+        "keepalive": 60,
+        "cleansession": true,
+        "autoUnsubscribe": true,
+        "birthTopic": "",
+        "birthQos": "0",
+        "birthRetain": "false",
+        "birthPayload": "",
+        "birthMsg": {},
+        "closeTopic": "",
+        "closeQos": "0",
+        "closeRetain": "false",
+        "closePayload": "",
+        "closeMsg": {},
+        "willTopic": "",
+        "willQos": "0",
+        "willRetain": "false",
+        "willPayload": "",
+        "willMsg": {},
+        "userProps": "",
+        "sessionExpiry": ""
+    },
+    {
+        "id": "5decbbaee148cfa0",
+        "type": "telegram bot",
+        "botname": "Sherry_sic_projects",
+        "usernames": "",
+        "chatids": "1212440511",
+        "baseapiurl": "",
+        "testenvironment": false,
+        "updatemode": "polling",
+        "pollinterval": 300,
+        "usesocks": false,
+        "sockshost": "",
+        "socksprotocol": "socks5",
+        "socksport": 6667,
+        "socksusername": "anonymous",
+        "sockspassword": "",
+        "bothost": "",
+        "botpath": "",
+        "localbothost": "0.0.0.0",
+        "localbotport": 8443,
+        "publicbotport": 8443,
+        "privatekey": "",
+        "certificate": "",
+        "useselfsignedcertificate": false,
+        "sslterminated": false,
+        "verboselogging": false
+    },
+    {
+        "id": "4c883c12fc37df96",
+        "type": "global-config",
+        "env": [],
+        "modules": {
+            "node-red-contrib-telegrambot": "19.0.2",
+            "node-red-node-email": "5.2.5"
+        }
+    }
+]
