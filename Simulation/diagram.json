@@ -1,0 +1,79 @@
+{
+  "version": 1,
+  "author": "Predictive Machine Monitoring - Pico W",
+  "editor": "wokwi",
+  "parts": [
+    {
+      "type": "board-pi-pico-w",
+      "id": "pico",
+      "top": -3.25,
+      "left": 3.55,
+      "attrs": { "env": "micropython-20231227-v1.22.0" }
+    },
+    {
+      "type": "wokwi-dht22",
+      "id": "dht1",
+      "top": -135,
+      "left": -190,
+      "attrs": { "temperature": "28" }
+    },
+    { "type": "wokwi-mpu6050", "id": "mpu", "top": 23.02, "left": -218.48, "attrs": {} },
+    {
+      "type": "wokwi-rgb-led",
+      "id": "rgb1",
+      "top": 196,
+      "left": -190.9,
+      "attrs": { "common": "cathode" }
+    },
+    {
+      "type": "wokwi-buzzer",
+      "id": "bz1",
+      "top": 271.2,
+      "left": -123,
+      "attrs": { "volume": "0.1" }
+    },
+    {
+      "type": "wokwi-pushbutton",
+      "id": "btn1",
+      "top": 330,
+      "left": -60,
+      "attrs": { "color": "green" }
+    },
+    { "type": "wokwi-potentiometer", "id": "pot1", "top": 161.9, "left": 163, "attrs": {} },
+    { "type": "wokwi-relay-module", "id": "relay1", "top": -86.2, "left": 153.6, "attrs": {} },
+    {
+      "type": "wokwi-led",
+      "id": "ledM",
+      "top": -175,
+      "left": 250,
+      "attrs": { "color": "orange", "label": "MACHINE" }
+    }
+  ],
+  "connections": [
+    [ "pico:GP4", "mpu:SDA", "green", [] ],
+    [ "pico:GP5", "mpu:SCL", "purple", [] ],
+    [ "pico:3V3", "mpu:VCC", "red", [] ],
+    [ "pico:GND.1", "mpu:GND", "black", [] ],
+    [ "pico:GP15", "dht1:SDA", "green", [] ],
+    [ "pico:3V3", "dht1:VCC", "red", [] ],
+    [ "pico:GND.2", "dht1:GND", "black", [] ],
+    [ "pico:GP10", "rgb1:R", "red", [] ],
+    [ "pico:GP11", "rgb1:G", "green", [] ],
+    [ "pico:GP12", "rgb1:B", "blue", [] ],
+    [ "pico:GND.4", "rgb1:COM", "black", [] ],
+    [ "pico:GP13", "bz1:2", "orange", [] ],
+    [ "pico:GND.4", "bz1:1", "black", [] ],
+    [ "pico:GP14", "btn1:1.l", "yellow", [] ],
+    [ "pico:GND.4", "btn1:2.l", "black", [] ],
+    [ "pico:GP16", "relay1:IN", "blue", [] ],
+    [ "pico:VBUS", "relay1:VCC", "red", [] ],
+    [ "pico:GND.6", "relay1:GND", "black", [] ],
+    [ "pico:3V3", "relay1:COM", "red", [] ],
+    [ "relay1:NO", "ledM:A", "orange", [] ],
+    [ "ledM:C", "pico:GND.5", "black", [] ],
+    [ "pico:GP26", "pot1:SIG", "green", [] ],
+    [ "pico:3V3", "pot1:VCC", "red", [] ],
+    [ "pico:GND.8", "pot1:GND", "black", [] ]
+  ],
+  "dependencies": {}
+}
